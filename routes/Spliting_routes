@@ -1,0 +1,93 @@
+const express = require('express');
+const jwt = require('jsonwebtoken');
+const User = require('../models/user'); // Assuming you have a User model
+const app = express();
+app.use(express.json());
+const jwtauth = require('../middleware/middleware');
+
+// Route for splitting equally
+router.post('/splitEqually', jwtauth, async (req, res) => {
+    try {
+        const { email, amount, persons } = req.body;
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Calculate amount per person
+        const amountPerPerson = parseFloat(amount / persons).toFixed(2);
+        const message = `Each person should pay ${amountPerPerson}`;
+
+        // Update user's history
+        user.history.push(message);
+        await user.save();
+
+        return res.status(200).json({ message });
+    } catch (error) {
+        console.error("Error splitting equally:", error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+// Route for splitting by percentage
+router.post('/splitByPercentage', jwtauth, async (req, res) => {
+    try {
+        const { email, amount, persons, percentages } = req.body;
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Calculate amount each person should pay based on percentages
+        const totalAmount = parseFloat(amount);
+        let message = '';
+        for (let i = 0; i < percentages.length; i++) {
+            const amountForPerson = parseFloat((totalAmount * percentages[i]) / 100).toFixed(2);
+            message += `Person ${i + 1} should pay ${amountForPerson}\n`;
+        }
+
+        // Update user's history
+        user.history.push(message);
+        await user.save();
+
+        return res.status(200).json({ message });
+    } catch (error) {
+        console.error("Error splitting by percentage:", error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+// Route for splitting by exact amount
+router.post('/splitByExactAmount', jwtauth, async (req, res) => {
+    try {
+        const { email, amount, amounts } = req.body;
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Calculate remaining amount
+        const totalAmount = parseFloat(amount);
+        let totalAmountPaid = 0;
+        for (const amount of amounts) {
+            totalAmountPaid += parseFloat(amount);
+        }
+        const remainingAmount = totalAmount - totalAmountPaid;
+
+        let message = '';
+        for (let i = 0; i < amounts.length; i++) {
+            message += `Person ${i + 1} should pay ${amounts[i]}\n`;
+        }
+        message += `Remaining amount is ${remainingAmount}`;
+
+        // Update user's history
+        user.history.push(message);
+        await user.save();
+
+        return res.status(200).json({ message });
+    } catch (error) {
+        console.error("Error splitting by exact amount:", error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+});
+
