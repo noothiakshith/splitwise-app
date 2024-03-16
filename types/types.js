@@ -7,5 +7,8 @@ const users = zod.object({
     firstname:zod.string(),
     lastname:zod.string()
 })
-
-modules.export = users;
+const loginschema = zod.object({
+    username:zod.string(),
+    password:zod.string().min(8).max(20)
+})
+modules.export ={users,loginschema};

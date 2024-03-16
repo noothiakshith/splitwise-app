@@ -6,6 +6,7 @@ import {users} from '../types/types';
 const app = expresss();
 app.use(express.json());
 import user from '../models/User_Schema';
+import loginschema from '../types/types';
 
 app.post('/signup',async(req,res)=>{
     const{payload} = req.body;
@@ -29,4 +30,28 @@ app.post('/signup',async(req,res)=>{
     }
 })
 
-app.post('/login',async(req,res)=>{})
+app.post('/login',async(req,res)=>{
+    const{payload} = req.body;
+    const{parsedpayload} = loginschema.safeParse(payload);
+    if(!parsedpayload){
+        return res.status(400).json({error:"Invalid payload"});
+    }
+    try{
+        const finding = await user.findOne({username:parsedpayload.username});
+        if(!finding){
+            return res.status(400).json({error:"Invalid username"});
+        }
+        if(finding.password !== parsedpayload.password){
+            return res.status(400).json({error:"Invalid password"});
+        }
+        const genereatetoken = jwt.sign({username:parsedpayload.username},process.env.SECRET);
+        return res.status(200).json({token:genereatetoken});
+    }
+    catch(err){
+        return res.status(500).json({error:"Internal server error"});
+    }
+})
+
+app.post('/logout',async(req,res)=>{
+    
+})
